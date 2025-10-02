@@ -1,39 +1,62 @@
 #include <Arduino.h>
-#include "LED.h"
 #include <OneButton.h>
 
-// LED ở GPIO2 (có thể thay đổi theo board)
-LED led(LED_PIN, LED_ACT);
+// LED1 trên board (GPIO2)
+#define LED1_PIN 2
+// LED2 ngoài (GPIO5)
+#define LED2_PIN 5
+// Button (GPIO21)
+#define BTN_PIN 21
 
-// Button ở GPIO21
-OneButton button(21, true);  // true = sử dụng internal pull-up (active low)
+OneButton button(BTN_PIN, true); // true: active low
 
-void btnPush();
-void btnDouble();
+int currentLed = LED1_PIN;   // LED đang được điều khiển
+bool ledState = false;
+bool blinkMode = false;
 
-void setup()
-{
-    led.off();
+void onSingleClick();   // bật/tắt LED
+void onDoubleClick();   // đổi LED điều khiển
+void onLongPress();     // nhấp nháy LED
 
-    // Single click: bật/tắt LED
-    button.attachClick(btnPush);
+void setup() {
+  pinMode(LED1_PIN, OUTPUT);
+  pinMode(LED2_PIN, OUTPUT);
+  digitalWrite(LED1_PIN, LOW);
+  digitalWrite(LED2_PIN, LOW);
 
-    // Double click: bật/tắt chế độ nhấp nháy
-    button.attachDoubleClick(btnDouble);
+  button.attachClick(onSingleClick);
+  button.attachDoubleClick(onDoubleClick);
+  button.attachLongPressStart(onLongPress);
 }
 
-void loop()
-{
-    led.loop();     // duy trì trạng thái LED (đặc biệt là blink)
-    button.tick();  // kiểm tra nút
+void loop() {
+  button.tick();
+
+  if (blinkMode) {
+    digitalWrite(currentLed, HIGH);
+    delay(200);
+    digitalWrite(currentLed, LOW);
+    delay(200);
+  }
 }
 
-void btnPush()
-{
-    led.flip();   // đổi trạng thái LED
+void onSingleClick() {
+  if (!blinkMode) {
+    ledState = !ledState;
+    digitalWrite(currentLed, ledState);
+  }
 }
 
-void btnDouble()
-{
-    led.blink(200);  // bật chế độ nhấp nháy với chu kỳ 200ms
+void onDoubleClick() {
+  // chuyển LED điều khiển
+  if (currentLed == LED1_PIN) {
+    currentLed = LED2_PIN;
+  } else {
+    currentLed = LED1_PIN;
+  }
+  blinkMode = false; // reset chế độ nhấp nháy khi đổi LED
+}
+
+void onLongPress() {
+  blinkMode = !blinkMode; // bật/tắt chế độ blink
 }
